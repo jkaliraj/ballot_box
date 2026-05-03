@@ -11,6 +11,13 @@ import logging
 import time
 from typing import Any, Optional
 
+from constants import (
+    CACHE_KEY_LENGTH,
+    DEFAULT_CACHE_TTL,
+    MAX_CACHE_SIZE_TIMELINE,
+    MAX_CACHE_SIZE_TOPIC,
+)
+
 __all__ = ["TTLCache", "timeline_cache", "topic_cache"]
 
 logger = logging.getLogger(__name__)
@@ -38,7 +45,7 @@ class TTLCache:
     def _make_key(*args: str) -> str:
         """Generate a deterministic cache key from input arguments."""
         raw = ":".join(str(a) for a in args)
-        return hashlib.sha256(raw.encode()).hexdigest()[:16]
+        return hashlib.sha256(raw.encode()).hexdigest()[:CACHE_KEY_LENGTH]
 
     def get(self, *args: str) -> Optional[Any]:
         """Retrieve a cached value if it exists and hasn't expired.
@@ -107,5 +114,5 @@ class TTLCache:
 
 
 # Module-level cache instances shared across the application.
-timeline_cache = TTLCache(ttl_seconds=3600, max_size=50)
-topic_cache = TTLCache(ttl_seconds=3600, max_size=100)
+timeline_cache = TTLCache(ttl_seconds=DEFAULT_CACHE_TTL, max_size=MAX_CACHE_SIZE_TIMELINE)
+topic_cache = TTLCache(ttl_seconds=DEFAULT_CACHE_TTL, max_size=MAX_CACHE_SIZE_TOPIC)

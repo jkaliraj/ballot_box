@@ -483,3 +483,24 @@ async def test_js_contains_error_tracking(client):
     response = await client.get("/static/app.js")
     assert "javascript_error" in response.text
     assert "unhandledrejection" in response.text
+
+
+@pytest.mark.anyio
+async def test_css_contains_dark_mode(client):
+    """CSS should include prefers-color-scheme dark media query."""
+    response = await client.get("/static/styles.css")
+    assert "prefers-color-scheme: dark" in response.text
+
+
+@pytest.mark.anyio
+async def test_root_contains_aria_busy(client):
+    """Dynamic containers should have aria-busy attributes."""
+    response = await client.get("/")
+    assert 'aria-busy=' in response.text
+
+
+@pytest.mark.anyio
+async def test_js_manages_aria_busy(client):
+    """Frontend JS should set and clear aria-busy during fetch operations."""
+    response = await client.get("/static/app.js")
+    assert 'setAttribute("aria-busy"' in response.text

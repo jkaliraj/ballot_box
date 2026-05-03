@@ -122,11 +122,12 @@ async def test_rate_limit_returns_429(client):
 
 @pytest.mark.anyio
 async def test_hsts_includes_subdomains(client):
-    """HSTS header should include includeSubDomains directive."""
+    """HSTS header should include includeSubDomains and preload directives."""
     response = await client.get("/api/health")
     hsts = response.headers.get("strict-transport-security", "")
     assert "includeSubDomains" in hsts
     assert "max-age=31536000" in hsts
+    assert "preload" in hsts
 
 
 @pytest.mark.anyio
@@ -138,3 +139,27 @@ async def test_permissions_policy_complete(client):
     assert "microphone=()" in pp
     assert "geolocation=()" in pp
     assert "payment=()" in pp
+
+
+@pytest.mark.anyio
+async def test_csp_base_uri_form_action_frame_ancestors(client):
+    """CSP should include base-uri, form-action, and frame-ancestors directives."""
+    response = await client.get("/api/health")
+    csp = response.headers["content-security-policy"]
+    assert "base-uri 'self'" in csp
+    assert "form-action 'self'" in csp
+    assert "frame-ancestors 'none'" in csp
+
+
+@pytest.mark.anyio
+async def test_x_permitted_cross_domain_policies(client):
+    """X-Permitted-Cross-Domain-Policies header should be 'none'."""
+    response = await client.get("/api/health")
+    assert response.headers.get("x-permitted-cross-domain-policies") == "none"
+
+
+@pytest.mark.anyio
+async def test_x_download_options(client):
+    """X-Download-Options header should be 'noopen'."""
+    response = await client.get("/api/health")
+    assert response.headers.get("x-download-options") == "noopen"

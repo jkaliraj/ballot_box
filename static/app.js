@@ -130,11 +130,12 @@ function removeThinking(el) {
 // ── Election Process ──────────────────────────────────────
 
 async function loadProcess() {
+    const container = document.getElementById("process-steps");
+    container.setAttribute("aria-busy", "true");
     try {
         const res = await fetch(`${API}/process`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        const container = document.getElementById("process-steps");
         container.innerHTML = data.steps
             .map(
                 (s) => `
@@ -153,8 +154,10 @@ async function loadProcess() {
             )
             .join("");
     } catch {
-        document.getElementById("process-steps").innerHTML =
+        container.innerHTML =
             '<p class="loading">Failed to load election process data.</p>';
+    } finally {
+        container.setAttribute("aria-busy", "false");
     }
 }
 
@@ -169,6 +172,7 @@ timelineForm.addEventListener("submit", async (e) => {
     trackEvent("timeline_generated", { country: country });
 
     const container = document.getElementById("timeline-results");
+    container.setAttribute("aria-busy", "true");
     container.innerHTML = '<div class="loading" role="status">Generating timeline...</div>';
 
     try {
@@ -192,6 +196,8 @@ timelineForm.addEventListener("submit", async (e) => {
             .join("");
     } catch {
         container.innerHTML = '<p class="loading">Failed to generate timeline. Please try again.</p>';
+    } finally {
+        container.setAttribute("aria-busy", "false");
     }
 });
 
@@ -201,6 +207,7 @@ const readinessForm = document.getElementById("readiness-form");
 readinessForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     const results = document.getElementById("readiness-results");
+    results.setAttribute("aria-busy", "true");
     results.innerHTML = '<div class="loading" role="status">Evaluating readiness...</div>';
 
     const payload = {
@@ -226,6 +233,8 @@ readinessForm.addEventListener("submit", async (e) => {
         renderReadiness(data);
     } catch {
         results.innerHTML = '<p class="loading">Failed to check readiness. Please try again.</p>';
+    } finally {
+        results.setAttribute("aria-busy", "false");
     }
 });
 
@@ -257,6 +266,8 @@ function renderReadiness(data) {
 let glossaryData = [];
 
 async function loadGlossary() {
+    const container = document.getElementById("glossary-list");
+    container.setAttribute("aria-busy", "true");
     try {
         const res = await fetch(`${API}/glossary`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -264,8 +275,10 @@ async function loadGlossary() {
         glossaryData = data.terms || [];
         renderGlossary(glossaryData);
     } catch {
-        document.getElementById("glossary-list").innerHTML =
+        container.innerHTML =
             '<p class="loading">Failed to load glossary.</p>';
+    } finally {
+        container.setAttribute("aria-busy", "false");
     }
 }
 

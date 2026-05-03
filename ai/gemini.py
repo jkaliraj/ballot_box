@@ -15,6 +15,14 @@ from google import genai
 from google.genai import types
 
 from config import get_settings
+from constants import (
+    DEFAULT_COUNTRY,
+    GEMINI_CHAT_TEMPERATURE,
+    GEMINI_JSON_TEMPERATURE,
+    GEMINI_MAX_OUTPUT_TOKENS,
+    GEMINI_TOPIC_TEMPERATURE,
+)
+from exceptions import AIParseError, AIServiceError, ConfigurationError
 from services.cache import timeline_cache, topic_cache
 
 __all__ = [
@@ -62,8 +70,9 @@ def _get_client() -> genai.Client:
     if _client is None:
         settings = get_settings()
         if not settings.project_id:
-            raise RuntimeError(
-                "Missing required environment variable: GOOGLE_CLOUD_PROJECT"
+            raise ConfigurationError(
+                "Missing required environment variable: GOOGLE_CLOUD_PROJECT",
+                detail={"variable": "GOOGLE_CLOUD_PROJECT"},
             )
         _client = genai.Client(
             vertexai=True,
@@ -120,8 +129,8 @@ async def chat(message: str, context: Optional[str] = None) -> str:
             model=settings.gemini_model,
             contents=["\n".join(prompt_parts)],
             config=types.GenerateContentConfig(
-                temperature=0.7,
-                max_output_tokens=2048,
+                temperature=GEMINI_CHAT_TEMPERATURE,
+                max_output_tokens=GEMINI_MAX_OUTPUT_TOKENS,
             ),
         )
         logger.info("Chat response generated: %d chars", len(response.text))
@@ -134,7 +143,7 @@ async def chat(message: str, context: Optional[str] = None) -> str:
         )
 
 
-async def generate_timeline(country: str = "India") -> list[dict[str, Any]]:
+async def generate_timeline(country: str = DEFAULT_COUNTRY) -> list[dict[str, Any]]:
     """Generate an election timeline for the specified country.
 
     Results are cached in-memory to reduce redundant Vertex AI calls
@@ -166,32 +175,26 @@ async def generate_timeline(country: str = "India") -> list[dict[str, Any]]:
         response = _get_client().models.generate_content(
             model=settings.gemini_model,
             contents=[prompt],
-            config=types.GenerateContentConfig(temperature=0.3),
+            config=types.GenerateContentConfig(temperature=GEMINI_JSON_TEMPERATURE),
         )
         result = _clean_json(response.text)
         timeline_cache.set(result, "timeline", country.lower())
         logger.info("Timeline generated for %s: %d phases", country, len(result))
         return result
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as exc:
         logger.exception("Timeline JSON parse error for %s", country)
-        return [
-            {
-                "phase": "Error",
-                "timeframe": "N/A",
-                "description": "Could not generate timeline. Please try again.",
-                "key_actions": [],
-            }
-        ]
+        raise AIParseError(
+            f"Failed to parse timeline for {country}",
+            detail={"country": country, "error": str(exc)},
+        ) from exc
+    except AIParseError:
+        raise
     except Exception as exc:
         logger.exception("Timeline generation error for %s", country)
-        return [
-            {
-                "phase": "Error",
-                "timeframe": "N/A",
-                "description": str(exc),
-                "key_actions": [],
-            }
-        ]
+        raise AIServiceError(
+            f"Timeline generation failed for {country}",
+            detail={"country": country, "error": str(exc)},
+        ) from exc
 
 
 async def voter_readiness_check(answers: dict[str, Any]) -> dict[str, Any]:
@@ -217,27 +220,23 @@ async def voter_readiness_check(answers: dict[str, Any]) -> dict[str, Any]:
         response = _get_client().models.generate_content(
             model=settings.gemini_model,
             contents=[prompt],
-            config=types.GenerateContentConfig(temperature=0.3),
+            config=types.GenerateContentConfig(temperature=GEMINI_JSON_TEMPERATURE),
         )
         return _clean_json(response.text)
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as exc:
         logger.exception("Readiness check JSON parse error")
-        return {
-            "score": 0,
-            "status": "error",
-            "summary": "Could not evaluate. Please try again.",
-            "action_items": [],
-            "tips": [],
-        }
+        raise AIParseError(
+            "Failed to parse readiness check response",
+            detail={"error": str(exc)},
+        ) from exc
+    except AIParseError:
+        raise
     except Exception as exc:
         logger.exception("Readiness check error")
-        return {
-            "score": 0,
-            "status": "error",
-            "summary": str(exc),
-            "action_items": [],
-            "tips": [],
-        }
+        raise AIServiceError(
+            "Readiness check failed",
+            detail={"error": str(exc)},
+        ) from exc
 
 
 async def explain_topic(topic: str) -> dict[str, Any]:
@@ -271,27 +270,23 @@ async def explain_topic(topic: str) -> dict[str, Any]:
         response = _get_client().models.generate_content(
             model=settings.gemini_model,
             contents=[prompt],
-            config=types.GenerateContentConfig(temperature=0.5),
+            config=types.GenerateContentConfig(temperature=GEMINI_TOPIC_TEMPERATURE),
         )
         result = _clean_json(response.text)
         topic_cache.set(result, "topic", topic.lower())
         logger.info("Topic explained: %s", topic)
         return result
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as exc:
         logger.exception("Topic explain JSON parse error for %s", topic)
-        return {
-            "title": topic,
-            "summary": "Could not generate explanation.",
-            "key_points": [],
-            "related_topics": [],
-            "did_you_know": "",
-        }
+        raise AIParseError(
+            f"Failed to parse topic explanation for {topic}",
+            detail={"topic": topic, "error": str(exc)},
+        ) from exc
+    except AIParseError:
+        raise
     except Exception as exc:
         logger.exception("Topic explain error for %s", topic)
-        return {
-            "title": topic,
-            "summary": str(exc),
-            "key_points": [],
-            "related_topics": [],
-            "did_you_know": "",
-        }
+        raise AIServiceError(
+            f"Topic explanation failed for {topic}",
+            detail={"topic": topic, "error": str(exc)},
+        ) from exc

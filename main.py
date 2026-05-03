@@ -25,6 +25,13 @@ from api.middleware import (
 )
 from api.routes import router
 from config import get_settings
+from constants import (
+    APP_DESCRIPTION,
+    APP_TITLE,
+    APP_VERSION,
+    GZIP_MINIMUM_SIZE,
+    RATE_LIMIT_WINDOW_SECONDS,
+)
 from services.google_cloud import setup_cloud_logging, get_cloud_run_metadata
 
 __all__ = ["app", "create_app"]
@@ -68,12 +75,9 @@ def create_app() -> FastAPI:
     settings = get_settings()
 
     application = FastAPI(
-        title="BallotBox AI",
-        description=(
-            "Election Literacy & Voter Empowerment Platform powered by "
-            "Google Gemini 2.5 Flash & Vertex AI"
-        ),
-        version="1.0.0",
+        title=APP_TITLE,
+        description=APP_DESCRIPTION,
+        version=APP_VERSION,
         docs_url="/api/docs",
         redoc_url="/api/redoc",
         lifespan=lifespan,
@@ -88,7 +92,7 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST"],
         allow_headers=["Content-Type", "X-Request-ID"],
     )
-    application.add_middleware(GZipMiddleware, minimum_size=500)
+    application.add_middleware(GZipMiddleware, minimum_size=GZIP_MINIMUM_SIZE)
     application.add_middleware(
         TrustedHostMiddleware,
         allowed_hosts=["*"],  # Tightened per-environment in production
@@ -97,7 +101,7 @@ def create_app() -> FastAPI:
     application.add_middleware(
         RateLimitMiddleware,
         max_requests=settings.rate_limit_per_minute,
-        window_seconds=60,
+        window_seconds=RATE_LIMIT_WINDOW_SECONDS,
     )
     application.add_middleware(RequestIdMiddleware)
     application.add_middleware(ErrorHandlerMiddleware)

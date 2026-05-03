@@ -10,12 +10,24 @@ import os
 import logging
 from dataclasses import dataclass, field
 from functools import lru_cache
+from typing import Final
+
+from constants import (
+    DEFAULT_CACHE_TTL,
+    DEFAULT_LOG_LEVEL,
+    DEFAULT_MODEL,
+    DEFAULT_PORT,
+    DEFAULT_RATE_LIMIT,
+    DEFAULT_REGION,
+)
 
 __all__ = ["Settings", "get_settings"]
 
 logger = logging.getLogger(__name__)
 
-_VALID_LOG_LEVELS = frozenset({"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"})
+_VALID_LOG_LEVELS: Final[frozenset[str]] = frozenset(
+    {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
+)
 
 
 @dataclass(frozen=True)
@@ -40,22 +52,22 @@ class Settings:
         default_factory=lambda: os.getenv("GOOGLE_CLOUD_PROJECT", "")
     )
     location: str = field(
-        default_factory=lambda: os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
+        default_factory=lambda: os.getenv("GOOGLE_CLOUD_LOCATION", DEFAULT_REGION)
     )
     gemini_model: str = field(
-        default_factory=lambda: os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+        default_factory=lambda: os.getenv("GEMINI_MODEL", DEFAULT_MODEL)
     )
     allowed_origins: str = field(
         default_factory=lambda: os.getenv("ALLOWED_ORIGINS", "")
     )
     port: int = field(
-        default_factory=lambda: int(os.getenv("PORT", "8080"))
+        default_factory=lambda: int(os.getenv("PORT", str(DEFAULT_PORT)))
     )
     environment: str = field(
         default_factory=lambda: os.getenv("ENVIRONMENT", "production")
     )
     log_level: str = field(
-        default_factory=lambda: os.getenv("LOG_LEVEL", "INFO").upper()
+        default_factory=lambda: os.getenv("LOG_LEVEL", DEFAULT_LOG_LEVEL).upper()
     )
     ga_measurement_id: str = field(
         default_factory=lambda: os.getenv("GA_MEASUREMENT_ID", "")
@@ -66,22 +78,22 @@ class Settings:
         ).lower() == "true"
     )
     cache_ttl_seconds: int = field(
-        default_factory=lambda: int(os.getenv("CACHE_TTL", "3600"))
+        default_factory=lambda: int(os.getenv("CACHE_TTL", str(DEFAULT_CACHE_TTL)))
     )
     rate_limit_per_minute: int = field(
-        default_factory=lambda: int(os.getenv("RATE_LIMIT", "60"))
+        default_factory=lambda: int(os.getenv("RATE_LIMIT", str(DEFAULT_RATE_LIMIT)))
     )
 
     def __post_init__(self) -> None:
         """Validate configuration values after initialization."""
         if self.log_level not in _VALID_LOG_LEVELS:
-            object.__setattr__(self, "log_level", "INFO")
+            object.__setattr__(self, "log_level", DEFAULT_LOG_LEVEL)
         if not 1 <= self.port <= 65535:
-            object.__setattr__(self, "port", 8080)
+            object.__setattr__(self, "port", DEFAULT_PORT)
         if self.cache_ttl_seconds < 0:
-            object.__setattr__(self, "cache_ttl_seconds", 3600)
+            object.__setattr__(self, "cache_ttl_seconds", DEFAULT_CACHE_TTL)
         if self.rate_limit_per_minute < 1:
-            object.__setattr__(self, "rate_limit_per_minute", 60)
+            object.__setattr__(self, "rate_limit_per_minute", DEFAULT_RATE_LIMIT)
 
 
 @lru_cache(maxsize=1)

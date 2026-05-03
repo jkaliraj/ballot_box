@@ -22,6 +22,17 @@ from ai.gemini import (
     generate_timeline,
     voter_readiness_check,
 )
+from constants import (
+    APP_VERSION,
+    DEFAULT_COUNTRY,
+    MAX_COUNTRY_LENGTH,
+    MAX_MESSAGE_LENGTH,
+    MAX_TOPIC_LENGTH,
+    MIN_INPUT_LENGTH,
+    SERVICE_NAME,
+)
+from exceptions import AIParseError, AIServiceError, BallotBoxError
+from sanitize import sanitize_text
 from services.cache import timeline_cache, topic_cache
 from services.google_cloud import get_cloud_run_metadata
 
@@ -54,17 +65,19 @@ class ChatRequest(BaseModel):
     )
 
     message: str = Field(
-        ..., min_length=1, max_length=2000, description="User question about elections"
+        ..., min_length=MIN_INPUT_LENGTH, max_length=MAX_MESSAGE_LENGTH,
+        description="User question about elections",
     )
     country: Optional[str] = Field(
-        None, max_length=100, description="Country context for localised answers"
+        None, max_length=MAX_COUNTRY_LENGTH,
+        description="Country context for localised answers",
     )
 
     @field_validator("message")
     @classmethod
     def sanitize_message(cls, v: str) -> str:
-        """Strip leading/trailing whitespace from user messages."""
-        v = v.strip()
+        """Strip whitespace and sanitize user messages."""
+        v = sanitize_text(v)
         if not v:
             raise ValueError("Message cannot be empty or whitespace only")
         return v
@@ -88,7 +101,8 @@ class TimelineRequest(BaseModel):
     )
 
     country: str = Field(
-        "India", min_length=1, max_length=100, description="Country for timeline generation"
+        DEFAULT_COUNTRY, min_length=MIN_INPUT_LENGTH, max_length=MAX_COUNTRY_LENGTH,
+        description="Country for timeline generation",
     )
 
 
@@ -139,7 +153,7 @@ class ReadinessRequest(BaseModel):
         ..., description="Whether they understand the ballot format"
     )
     country: Optional[str] = Field(
-        None, max_length=100, description="Optional country context"
+        None, max_length=MAX_COUNTRY_LENGTH, description="Optional country context"
     )
 
 
@@ -165,14 +179,15 @@ class TopicRequest(BaseModel):
     )
 
     topic: str = Field(
-        ..., min_length=1, max_length=500, description="Election topic to explain"
+        ..., min_length=MIN_INPUT_LENGTH, max_length=MAX_TOPIC_LENGTH,
+        description="Election topic to explain",
     )
 
     @field_validator("topic")
     @classmethod
     def sanitize_topic(cls, v: str) -> str:
-        """Strip leading/trailing whitespace from topic input."""
-        v = v.strip()
+        """Strip whitespace and sanitize topic input."""
+        v = sanitize_text(v)
         if not v:
             raise ValueError("Topic cannot be empty or whitespace only")
         return v
@@ -281,8 +296,8 @@ async def health() -> HealthResponse:
     metadata = get_cloud_run_metadata()
     return HealthResponse(
         status="healthy",
-        service="ballotbox-ai",
-        version="1.0.0",
+        service=SERVICE_NAME,
+        version=APP_VERSION,
         environment=metadata.get("service", "local"),
         cache_stats={
             "timeline_cache": timeline_cache.stats,
@@ -318,7 +333,18 @@ async def timeline_endpoint(data: TimelineRequest) -> TimelineResponse:
     with caching to optimise repeated queries.
     """
     logger.info("Timeline request: country=%s", data.country)
-    timeline = await generate_timeline(data.country)
+    try:
+        timeline = await generate_timeline(data.country)
+    except (AIParseError, AIServiceError) as exc:
+        logger.warning("Timeline generation fallback: %s", exc.message)
+        timeline = [
+            {
+                "phase": "Error",
+                "timeframe": "N/A",
+                "description": "Could not generate timeline. Please try again.",
+                "key_actions": [],
+            }
+        ]
     return TimelineResponse(country=data.country, timeline=timeline)
 
 
@@ -342,7 +368,17 @@ async def readiness_endpoint(data: ReadinessRequest) -> ReadinessResponse:
     if data.country:
         answers["country"] = data.country
     logger.info("Readiness check request")
-    result = await voter_readiness_check(answers)
+    try:
+        result = await voter_readiness_check(answers)
+    except (AIParseError, AIServiceError) as exc:
+        logger.warning("Readiness check fallback: %s", exc.message)
+        result = {
+            "score": 0,
+            "status": "error",
+            "summary": "Could not evaluate readiness. Please try again.",
+            "action_items": [],
+            "tips": [],
+        }
     return ReadinessResponse(**result)
 
 
@@ -357,7 +393,17 @@ async def topic_endpoint(data: TopicRequest) -> TopicResponse:
     related topics, and fun facts.
     """
     logger.info("Topic request: %s", data.topic)
-    result = await explain_topic(data.topic)
+    try:
+        result = await explain_topic(data.topic)
+    except (AIParseError, AIServiceError) as exc:
+        logger.warning("Topic explain fallback: %s", exc.message)
+        result = {
+            "title": data.topic,
+            "summary": "Could not generate explanation. Please try again.",
+            "key_points": [],
+            "related_topics": [],
+            "did_you_know": "",
+        }
     return TopicResponse(**result)
 
 

@@ -104,7 +104,7 @@
         <section id="section-process" class="section" role="tabpanel" aria-labelledby="tab-process" aria-label="How Voting Works" tabindex="-1">
             <h2>How Voting Works</h2>
             <p class="section-desc">A step-by-step guide to the election process from registration to certification.</p>
-            <div id="process-steps" class="steps-grid" role="list">
+            <div id="process-steps" class="steps-grid" role="list" aria-busy="true">
                 <div class="loading" role="status" aria-label="Loading">Loading election process...</div>
             </div>
         </section>
@@ -119,7 +119,7 @@
                 <span id="timeline-hint" class="sr-only">Enter a country name to generate its election timeline</span>
                 <button type="submit">Generate Timeline</button>
             </form>
-            <div id="timeline-results" class="timeline-container" role="list" aria-label="Timeline results"></div>
+            <div id="timeline-results" class="timeline-container" role="list" aria-label="Timeline results" aria-busy="false"></div>
         </section>
 
         <!-- Voter Readiness Section -->
@@ -139,7 +139,7 @@
                 </fieldset>
                 <button type="submit">Check Readiness</button>
             </form>
-            <div id="readiness-results" class="readiness-results" aria-live="polite"></div>
+            <div id="readiness-results" class="readiness-results" aria-live="polite" aria-busy="false"></div>
         </section>
 
         <!-- Glossary Section -->
@@ -148,7 +148,7 @@
             <p class="section-desc">Key terms every voter should know.</p>
             <label for="glossary-search" class="sr-only">Search glossary</label>
             <input type="text" id="glossary-search" class="glossary-search" placeholder="Search terms..." maxlength="100" aria-label="Filter glossary terms">
-            <div id="glossary-list" class="glossary-grid" role="list">
+            <div id="glossary-list" class="glossary-grid" role="list" aria-busy="true">
                 <div class="loading" role="status" aria-label="Loading">Loading glossary...</div>
             </div>
         </section>

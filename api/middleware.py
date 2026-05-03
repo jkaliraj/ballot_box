@@ -15,6 +15,7 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
+from constants import HSTS_MAX_AGE
 from services.error_reporting import report_error
 
 __all__ = [
@@ -95,6 +96,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         - Strict-Transport-Security: Enforce HTTPS.
         - Cross-Origin-Opener-Policy: Isolate browsing context.
         - Cross-Origin-Resource-Policy: Restrict cross-origin reads.
+        - X-Permitted-Cross-Domain-Policies: Block cross-domain policies.
+        - X-Download-Options: Prevent IE file open.
         - Cache-Control: Prevent sensitive data caching.
     """
 
@@ -119,13 +122,18 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "font-src 'self' https://fonts.gstatic.com data:; "
             "img-src 'self' data:; "
             "connect-src 'self' https://www.google-analytics.com "
-            "https://analytics.google.com"
+            "https://analytics.google.com; "
+            "base-uri 'self'; "
+            "form-action 'self'; "
+            "frame-ancestors 'none'"
         )
         response.headers["Strict-Transport-Security"] = (
-            "max-age=31536000; includeSubDomains"
+            f"max-age={HSTS_MAX_AGE}; includeSubDomains; preload"
         )
         response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
         response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
+        response.headers["X-Permitted-Cross-Domain-Policies"] = "none"
+        response.headers["X-Download-Options"] = "noopen"
 
         # Cache-Control for API responses (not static files)
         if request.url.path.startswith("/api"):

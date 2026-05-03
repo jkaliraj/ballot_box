@@ -852,3 +852,30 @@ footer::after {
     .nav-btn.active { border-color: Highlight; }
     .step-icon { forced-color-adjust: none; }
 }
+
+/* ── Dark mode ────────────────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #0f172a;
+        --surface: #1e293b;
+        --text: #e2e8f0;
+        --text-light: #94a3b8;
+        --border: #334155;
+        --shadow: 4px 4px 0px #0f172a;
+        --teal: #2dd4bf;
+        --teal-light: #134e4a;
+        --amber: #fbbf24;
+        --rose: #fb7185;
+        --indigo: #818cf8;
+    }
+    body { background-color: var(--bg); color: var(--text); }
+    .section { background: var(--surface); border-color: var(--border); }
+    .nav-btn { background: var(--surface); color: var(--text); border-color: var(--border); }
+    .nav-btn.active { background: var(--teal-light); color: var(--teal); border-color: var(--teal); }
+    .message { background: var(--surface); color: var(--text); border-color: var(--border); }
+    .message.bot { background: var(--teal-light); }
+    input, textarea { background: var(--surface); color: var(--text); border-color: var(--border); }
+    .step-card, .glossary-card, .timeline-item { background: var(--surface); border-color: var(--border); }
+    footer { background: var(--surface); color: var(--text-light); border-color: var(--border); }
+    a { color: var(--teal); }
+}

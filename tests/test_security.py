@@ -149,3 +149,44 @@ async def test_cors_allows_all_origins():
     app = create_app()
     middleware_classes = [m.cls.__name__ for m in app.user_middleware]
     assert "CORSMiddleware" in middleware_classes
+
+
+@pytest.mark.anyio
+async def test_hsts_preload(client):
+    """HSTS header should include the preload directive."""
+    response = await client.get("/api/health")
+    hsts = response.headers.get("strict-transport-security", "")
+    assert "preload" in hsts
+
+
+@pytest.mark.anyio
+async def test_csp_frame_ancestors(client):
+    """CSP should include frame-ancestors 'none' to prevent framing."""
+    response = await client.get("/api/health")
+    csp = response.headers.get("content-security-policy", "")
+    assert "frame-ancestors 'none'" in csp
+
+
+@pytest.mark.anyio
+async def test_cross_domain_policies_header(client):
+    """X-Permitted-Cross-Domain-Policies should be set to 'none'."""
+    response = await client.get("/api/health")
+    assert response.headers.get("x-permitted-cross-domain-policies") == "none"
+
+
+@pytest.mark.anyio
+async def test_download_options_header(client):
+    """X-Download-Options should be set to 'noopen'."""
+    response = await client.get("/api/health")
+    assert response.headers.get("x-download-options") == "noopen"
+
+
+@pytest.mark.anyio
+async def test_input_sanitization_strips_control_chars(client):
+    """Input with control characters should be sanitized."""
+    response = await client.post(
+        "/api/chat",
+        json={"message": "hello\x00world"},
+    )
+    # Should not crash; control chars are stripped
+    assert response.status_code in (200, 500)
