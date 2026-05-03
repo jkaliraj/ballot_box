@@ -183,6 +183,23 @@ async def test_error_handler_returns_500_json(client):
 
 
 @pytest.mark.anyio
+async def test_error_handler_catches_unhandled(client):
+    """ErrorHandlerMiddleware should catch unhandled exceptions and return 500."""
+    from unittest.mock import patch
+
+    async def _broken_chat(*_a, **_kw):
+        raise RuntimeError("unexpected crash")
+
+    with patch("api.routes.chat", side_effect=_broken_chat), \
+         patch("api.routes.sanitize_text", side_effect=RuntimeError("boom")):
+        response = await client.post("/api/chat", json={"message": "Hi"})
+    assert response.status_code == 500
+    data = response.json()
+    assert "detail" in data
+    assert "request_id" in data
+
+
+@pytest.mark.anyio
 async def test_static_files_no_api_cache_control(client):
     """Static file responses should NOT have no-store Cache-Control."""
     response = await client.get("/static/styles.css")

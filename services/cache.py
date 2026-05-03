@@ -9,7 +9,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import time
-from typing import Any, Optional
+from typing import Any
 
 from constants import (
     CACHE_KEY_LENGTH,
@@ -47,7 +47,7 @@ class TTLCache:
         raw = ":".join(str(a) for a in args)
         return hashlib.sha256(raw.encode()).hexdigest()[:CACHE_KEY_LENGTH]
 
-    def get(self, *args: str) -> Optional[Any]:
+    def get(self, *args: str) -> Any | None:
         """Retrieve a cached value if it exists and hasn't expired.
 
         Args:

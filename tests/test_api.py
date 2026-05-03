@@ -1,11 +1,9 @@
 """Unit tests for BallotBox AI API endpoints."""
 
-import json
 from pathlib import Path
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 
 BASE = Path(__file__).resolve().parent.parent
 
@@ -517,7 +515,8 @@ async def test_chat_fallback_on_ai_error(client):
     with patch("api.routes.chat", side_effect=_raise_error):
         response = await client.post("/api/chat", json={"message": "Hello"})
     assert response.status_code == 200
-    assert "trouble" in response.json()["reply"].lower() or "try again" in response.json()["reply"].lower()
+    reply = response.json()["reply"].lower()
+    assert "trouble" in reply or "try again" in reply
 
 
 @pytest.mark.anyio
@@ -605,3 +604,62 @@ async def test_js_announces_api_results(client):
     # Should have announcements for process, timeline, readiness, glossary, chat
     assert "Response received" in text
     assert "election process steps" in text
+
+
+@pytest.mark.anyio
+async def test_readiness_with_country(client):
+    """Readiness endpoint should include country in answers when provided."""
+    readiness_result = {
+        "score": 90,
+        "status": "ready",
+        "summary": "Well prepared",
+        "action_items": [],
+        "tips": [],
+    }
+
+    async def _mock_readiness(answers):
+        assert "country" in answers
+        assert answers["country"] == "India"
+        return readiness_result
+
+    with patch("api.routes.voter_readiness_check", side_effect=_mock_readiness):
+        response = await client.post("/api/readiness", json={
+            "registered": True,
+            "know_polling_location": True,
+            "have_id": True,
+            "know_election_date": True,
+            "understand_ballot": True,
+            "country": "India",
+        })
+    assert response.status_code == 200
+    assert response.json()["score"] == 90
+
+
+@pytest.mark.anyio
+async def test_glossary_not_found(client):
+    """Glossary should return 404 if data file is missing."""
+    from api.routes import _load_glossary
+
+    _load_glossary.cache_clear()
+    with patch("api.routes.DATA_DIR") as mock_dir:
+        mock_path = MagicMock()
+        mock_path.exists.return_value = False
+        mock_dir.__truediv__ = lambda s, n: mock_path
+        response = await client.get("/api/glossary")
+    assert response.status_code == 404
+    _load_glossary.cache_clear()
+
+
+@pytest.mark.anyio
+async def test_process_not_found(client):
+    """Election process should return 404 if data file is missing."""
+    from api.routes import _load_process
+
+    _load_process.cache_clear()
+    with patch("api.routes.DATA_DIR") as mock_dir:
+        mock_path = MagicMock()
+        mock_path.exists.return_value = False
+        mock_dir.__truediv__ = lambda s, n: mock_path
+        response = await client.get("/api/process")
+    assert response.status_code == 404
+    _load_process.cache_clear()

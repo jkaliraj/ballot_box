@@ -84,3 +84,14 @@ class TestTTLCache:
         cache.set("original", "k1")
         cache.set("updated", "k1")
         assert cache.get("k1") == "updated"
+
+    def test_evict_oldest_when_at_capacity(self):
+        """When cache is at max_size, oldest non-expired entry is evicted."""
+        cache = TTLCache(ttl_seconds=300, max_size=2)
+        cache.set("first", "a")
+        cache.set("second", "b")
+        # Adding a third should evict the oldest ("a")
+        cache.set("third", "c")
+        assert cache.get("a") is None
+        assert cache.get("b") == "second"
+        assert cache.get("c") == "third"

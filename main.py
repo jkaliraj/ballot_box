@@ -6,16 +6,16 @@ Google Cloud Logging, Google Analytics, and response caching.
 """
 
 import logging
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from api.middleware import (
     ErrorHandlerMiddleware,
@@ -32,7 +32,7 @@ from constants import (
     GZIP_MINIMUM_SIZE,
     RATE_LIMIT_WINDOW_SECONDS,
 )
-from services.google_cloud import setup_cloud_logging, get_cloud_run_metadata
+from services.google_cloud import get_cloud_run_metadata, setup_cloud_logging
 
 __all__ = ["app", "create_app"]
 

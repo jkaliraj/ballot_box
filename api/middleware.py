@@ -10,14 +10,16 @@ import logging
 import time
 import uuid
 from collections import defaultdict
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
 from constants import HSTS_MAX_AGE
 from services.error_reporting import report_error
+
+if TYPE_CHECKING:
+    from starlette.requests import Request
 
 __all__ = [
     "ErrorHandlerMiddleware",

@@ -6,8 +6,8 @@ Uses Google Cloud-aware defaults for seamless Cloud Run deployment.
 
 from __future__ import annotations
 
-import os
 import logging
+import os
 from dataclasses import dataclass, field
 from functools import lru_cache
 from typing import Final

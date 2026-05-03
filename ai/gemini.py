@@ -26,11 +26,11 @@ from exceptions import AIParseError, AIServiceError, ConfigurationError
 from services.cache import timeline_cache, topic_cache
 
 __all__ = [
+    "SYSTEM_INSTRUCTION",
     "chat",
     "explain_topic",
     "generate_timeline",
     "voter_readiness_check",
-    "SYSTEM_INSTRUCTION",
 ]
 
 logger = logging.getLogger(__name__)

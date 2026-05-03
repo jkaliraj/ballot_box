@@ -1,10 +1,9 @@
 """Unit tests for BallotBox Google Cloud service integrations."""
 
+import importlib
 import logging
 import os
-from unittest.mock import patch
-
-import pytest
+from unittest.mock import MagicMock, patch
 
 from services.google_cloud import (
     get_cloud_run_metadata,
@@ -66,5 +65,35 @@ def test_log_structured_no_kwargs():
     with patch.object(test_logger, "log") as mock_log:
         log_structured(test_logger, logging.WARNING, "plain message")
         mock_log.assert_called_once()
-        args, kwargs = mock_log.call_args
+        args, _kwargs = mock_log.call_args
         assert args[1] == "plain message"
+
+
+def test_setup_cloud_logging_success():
+    """setup_cloud_logging should use Cloud Logging when available."""
+    mock_client = MagicMock()
+    mock_module = MagicMock()
+    mock_module.Client.return_value = mock_client
+
+    with patch.dict("sys.modules", {"google.cloud.logging": mock_module}):
+        import services.google_cloud as mod
+
+        importlib.reload(mod)
+        mod.setup_cloud_logging("WARNING")
+        mock_client.setup_logging.assert_called_once()
+
+    importlib.reload(mod)
+
+
+def test_setup_cloud_logging_exception():
+    """setup_cloud_logging should handle Cloud Logging exceptions."""
+    mock_module = MagicMock()
+    mock_module.Client.side_effect = RuntimeError("auth fail")
+
+    with patch.dict("sys.modules", {"google.cloud.logging": mock_module}):
+        import services.google_cloud as mod
+
+        importlib.reload(mod)
+        mod.setup_cloud_logging("INFO")
+
+    importlib.reload(mod)

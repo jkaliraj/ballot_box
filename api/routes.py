@@ -175,7 +175,9 @@ class TopicRequest(BaseModel):
     """
 
     model_config = ConfigDict(
-        json_schema_extra={"examples": [{"topic": "Electoral College"}, {"topic": "Gerrymandering"}]}
+        json_schema_extra={
+            "examples": [{"topic": "Electoral College"}, {"topic": "Gerrymandering"}],
+        },
     )
 
     topic: str = Field(
