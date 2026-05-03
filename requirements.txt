@@ -1,9 +1,12 @@
-fastapi
-uvicorn[standard]
-google-genai
-google-cloud-logging
-google-cloud-error-reporting
-pydantic
-pytest
-httpx
-anyio
+# Production dependencies
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+google-genai>=1.0.0
+google-cloud-logging>=3.11.0
+google-cloud-error-reporting>=1.11.0
+pydantic>=2.9.0
+
+# Test dependencies (dev only — not needed in production)
+pytest>=8.3.0
+httpx>=0.27.0
+anyio>=4.6.0

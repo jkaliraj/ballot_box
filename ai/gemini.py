@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from google import genai
 from google.genai import types
@@ -35,7 +35,7 @@ __all__ = [
 
 logger = logging.getLogger(__name__)
 
-_client: Optional[genai.Client] = None
+_client: genai.Client | None = None
 
 SYSTEM_INSTRUCTION = (
     "You are BallotBox AI, a non-partisan election literacy assistant. "
@@ -64,7 +64,7 @@ def _get_client() -> genai.Client:
         genai.Client: Authenticated Vertex AI Gemini client.
 
     Raises:
-        RuntimeError: If required Google Cloud env vars are missing.
+        ConfigurationError: If required Google Cloud env vars are missing.
     """
     global _client
     if _client is None:
@@ -108,7 +108,7 @@ def _clean_json(text: str) -> Any:
     return json.loads(text)
 
 
-async def chat(message: str, context: Optional[str] = None) -> str:
+async def chat(message: str, context: str | None = None) -> str:
     """Send a chat message to Gemini with election education context.
 
     Args:
@@ -117,6 +117,9 @@ async def chat(message: str, context: Optional[str] = None) -> str:
 
     Returns:
         Gemini's text response as a string.
+
+    Raises:
+        AIServiceError: If the Gemini API call fails.
     """
     settings = get_settings()
     prompt_parts = [SYSTEM_INSTRUCTION]
@@ -137,10 +140,10 @@ async def chat(message: str, context: Optional[str] = None) -> str:
         return response.text
     except Exception as exc:
         logger.exception("Gemini chat error")
-        return (
-            "I'm having trouble processing your request. "
-            f"Please try again. ({exc})"
-        )
+        raise AIServiceError(
+            "Chat generation failed",
+            detail={"error": str(exc)},
+        ) from exc
 
 
 async def generate_timeline(country: str = DEFAULT_COUNTRY) -> list[dict[str, Any]]:

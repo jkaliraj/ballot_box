@@ -65,9 +65,11 @@ chatForm.addEventListener("submit", async (e) => {
         const data = await res.json();
         removeThinking(thinkingEl);
         appendMessage(data.reply, "bot");
+        announce("Response received from BallotBox AI.");
     } catch (err) {
         removeThinking(thinkingEl);
         appendMessage("Sorry, something went wrong. Please try again.", "bot");
+        announce("Error: could not get a response.");
     } finally {
         chatInput.disabled = false;
         document.getElementById("send-btn").disabled = false;
@@ -141,21 +143,23 @@ async function loadProcess() {
                 (s) => `
             <article class="step-card" role="listitem">
                 <div class="step-header">
-                    <span class="step-icon" aria-hidden="true">${s.icon}</span>
-                    <span class="step-number" aria-label="Step ${s.step}">${s.step}</span>
-                    <span class="step-title">${s.title}</span>
+                    <span class="step-icon" aria-hidden="true">${sanitizeHTML(s.icon)}</span>
+                    <span class="step-number" aria-label="Step ${sanitizeHTML(String(s.step))}">${sanitizeHTML(String(s.step))}</span>
+                    <span class="step-title">${sanitizeHTML(s.title)}</span>
                 </div>
-                <p class="step-desc">${s.description}</p>
+                <p class="step-desc">${sanitizeHTML(s.description)}</p>
                 <ul class="step-details">
-                    ${s.details.map((d) => `<li>${d}</li>`).join("")}
+                    ${s.details.map((d) => `<li>${sanitizeHTML(d)}</li>`).join("")}
                 </ul>
             </article>
         `
             )
             .join("");
+        announce(`Loaded ${data.steps.length} election process steps.`);
     } catch {
         container.innerHTML =
             '<p class="loading">Failed to load election process data.</p>';
+        announce("Failed to load election process data.");
     } finally {
         container.setAttribute("aria-busy", "false");
     }
@@ -187,15 +191,17 @@ timelineForm.addEventListener("submit", async (e) => {
             .map(
                 (item) => `
             <div class="timeline-item" role="listitem">
-                <div class="timeline-phase">${item.phase}</div>
-                <div class="timeline-time">${item.timeframe}</div>
-                <p class="timeline-desc">${item.description}</p>
+                <div class="timeline-phase">${sanitizeHTML(item.phase)}</div>
+                <div class="timeline-time">${sanitizeHTML(item.timeframe)}</div>
+                <p class="timeline-desc">${sanitizeHTML(item.description)}</p>
             </div>
         `
             )
             .join("");
+        announce(`Timeline generated with ${data.timeline.length} phases.`);
     } catch {
         container.innerHTML = '<p class="loading">Failed to generate timeline. Please try again.</p>';
+        announce("Failed to generate timeline.");
     } finally {
         container.setAttribute("aria-busy", "false");
     }
@@ -231,8 +237,10 @@ readinessForm.addEventListener("submit", async (e) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         renderReadiness(data);
+        announce(`Readiness score: ${data.score}%. ${data.summary}`);
     } catch {
         results.innerHTML = '<p class="loading">Failed to check readiness. Please try again.</p>';
+        announce("Failed to check readiness.");
     } finally {
         results.setAttribute("aria-busy", "false");
     }
@@ -245,16 +253,16 @@ function renderReadiness(data) {
     let html = `
         <div class="readiness-card">
             <div class="score-display">
-                <div class="score-number ${scoreClass}">${data.score}%</div>
-                <div class="score-label">${data.summary}</div>
+                <div class="score-number ${scoreClass}">${sanitizeHTML(String(data.score))}%</div>
+                <div class="score-label">${sanitizeHTML(data.summary)}</div>
             </div>
     `;
 
     if (data.action_items && data.action_items.length > 0) {
-        html += `<h3>Action Items</h3><ul class="action-list">${data.action_items.map((a) => `<li>${a}</li>`).join("")}</ul>`;
+        html += `<h3>Action Items</h3><ul class="action-list">${data.action_items.map((a) => `<li>${sanitizeHTML(a)}</li>`).join("")}</ul>`;
     }
     if (data.tips && data.tips.length > 0) {
-        html += `<h3>Tips</h3><ul class="tips-list">${data.tips.map((t) => `<li>${t}</li>`).join("")}</ul>`;
+        html += `<h3>Tips</h3><ul class="tips-list">${data.tips.map((t) => `<li>${sanitizeHTML(t)}</li>`).join("")}</ul>`;
     }
 
     html += "</div>";
@@ -274,9 +282,11 @@ async function loadGlossary() {
         const data = await res.json();
         glossaryData = data.terms || [];
         renderGlossary(glossaryData);
+        announce(`Loaded ${glossaryData.length} glossary terms.`);
     } catch {
         container.innerHTML =
             '<p class="loading">Failed to load glossary.</p>';
+        announce("Failed to load glossary.");
     } finally {
         container.setAttribute("aria-busy", "false");
     }
@@ -287,8 +297,8 @@ function renderGlossary(terms) {
         .map(
             (t) => `
         <div class="glossary-card" role="listitem">
-            <div class="glossary-term">${t.term}</div>
-            <div class="glossary-def">${t.definition}</div>
+            <div class="glossary-term">${sanitizeHTML(t.term)}</div>
+            <div class="glossary-def">${sanitizeHTML(t.definition)}</div>
         </div>
     `
         )

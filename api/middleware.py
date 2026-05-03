@@ -10,6 +10,7 @@ import logging
 import time
 import uuid
 from collections import defaultdict
+from typing import Any
 
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
@@ -154,11 +155,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         window_seconds: Duration of the sliding window in seconds.
     """
 
-    def __init__(self, app, max_requests: int = 60, window_seconds: int = 60):
+    def __init__(self, app: Any, max_requests: int = 60, window_seconds: int = 60) -> None:
         super().__init__(app)
         self.max_requests = max_requests
         self.window_seconds = window_seconds
-        self._requests: dict[str, list[float]] = defaultdict(list)
+        self._requests: defaultdict[str, list[float]] = defaultdict(list)
 
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint

@@ -34,13 +34,13 @@
     <!-- Google Fonts — Inter & JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" crossorigin="anonymous">
 
     <!-- Google Material Symbols (icons) -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" crossorigin="anonymous">
 
     <!-- Google Analytics (GA4) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-BALLOTBOX01"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-BALLOTBOX01" crossorigin="anonymous"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
@@ -115,7 +115,7 @@
             <p class="section-desc">Generate an AI-powered election timeline for any country.</p>
             <form id="timeline-form" class="inline-form" aria-label="Generate election timeline">
                 <label for="timeline-country" class="sr-only">Country</label>
-                <input type="text" id="timeline-country" placeholder="Enter country (e.g., India)" value="India" maxlength="100" aria-describedby="timeline-hint">
+                <input type="text" id="timeline-country" placeholder="Enter country (e.g., India)" value="India" maxlength="100" required aria-required="true" aria-describedby="timeline-hint">
                 <span id="timeline-hint" class="sr-only">Enter a country name to generate its election timeline</span>
                 <button type="submit">Generate Timeline</button>
             </form>

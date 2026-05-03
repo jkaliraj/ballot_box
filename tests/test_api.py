@@ -504,3 +504,104 @@ async def test_js_manages_aria_busy(client):
     """Frontend JS should set and clear aria-busy during fetch operations."""
     response = await client.get("/static/app.js")
     assert 'setAttribute("aria-busy"' in response.text
+
+
+@pytest.mark.anyio
+async def test_chat_fallback_on_ai_error(client):
+    """Chat endpoint should return fallback message when AI fails."""
+    from exceptions import AIServiceError
+
+    async def _raise_error(*a, **kw):
+        raise AIServiceError("test failure")
+
+    with patch("api.routes.chat", side_effect=_raise_error):
+        response = await client.post("/api/chat", json={"message": "Hello"})
+    assert response.status_code == 200
+    assert "trouble" in response.json()["reply"].lower() or "try again" in response.json()["reply"].lower()
+
+
+@pytest.mark.anyio
+async def test_timeline_fallback_on_ai_error(client):
+    """Timeline endpoint should return error fallback when AI fails."""
+    from exceptions import AIServiceError
+
+    async def _raise_error(*a, **kw):
+        raise AIServiceError("test failure")
+
+    with patch("api.routes.generate_timeline", side_effect=_raise_error):
+        response = await client.post("/api/timeline", json={"country": "India"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["timeline"][0]["phase"] == "Error"
+
+
+@pytest.mark.anyio
+async def test_topic_fallback_on_ai_error(client):
+    """Topic endpoint should return error fallback when AI fails."""
+    from exceptions import AIServiceError
+
+    async def _raise_error(*a, **kw):
+        raise AIServiceError("test failure")
+
+    with patch("api.routes.explain_topic", side_effect=_raise_error):
+        response = await client.post("/api/topic", json={"topic": "Voting"})
+    assert response.status_code == 200
+    data = response.json()
+    assert "could not" in data["summary"].lower() or "try again" in data["summary"].lower()
+
+
+@pytest.mark.anyio
+async def test_readiness_fallback_on_ai_error(client):
+    """Readiness endpoint should return error fallback when AI fails."""
+    from exceptions import AIServiceError
+
+    async def _raise_error(*a, **kw):
+        raise AIServiceError("test failure")
+
+    with patch("api.routes.voter_readiness_check", side_effect=_raise_error):
+        response = await client.post("/api/readiness", json={
+            "registered": True,
+            "know_polling_location": True,
+            "have_id": True,
+            "know_election_date": True,
+            "understand_ballot": True,
+        })
+    assert response.status_code == 200
+    data = response.json()
+    assert data["score"] == 0
+    assert data["status"] == "error"
+
+
+@pytest.mark.anyio
+async def test_js_sanitizes_api_data(client):
+    """Frontend JS should use sanitizeHTML for all API-sourced data."""
+    response = await client.get("/static/app.js")
+    text = response.text
+    # All dynamic renders should use sanitizeHTML
+    assert text.count("sanitizeHTML(") >= 10
+
+
+@pytest.mark.anyio
+async def test_html_crossorigin_on_external_resources(client):
+    """External scripts and stylesheets should have crossorigin attribute."""
+    response = await client.get("/")
+    assert 'crossorigin="anonymous"' in response.text
+
+
+@pytest.mark.anyio
+async def test_html_timeline_input_required(client):
+    """Timeline country input should have required and aria-required attributes."""
+    response = await client.get("/")
+    assert 'id="timeline-country"' in response.text
+    assert 'aria-required="true"' in response.text
+
+
+@pytest.mark.anyio
+async def test_js_announces_api_results(client):
+    """Frontend JS should call announce() after API operations."""
+    response = await client.get("/static/app.js")
+    text = response.text
+    assert "announce(" in text
+    # Should have announcements for process, timeline, readiness, glossary, chat
+    assert "Response received" in text
+    assert "election process steps" in text

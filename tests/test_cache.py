@@ -71,3 +71,16 @@ class TestTTLCache:
         key1 = TTLCache._make_key("hello")
         key2 = TTLCache._make_key("world")
         assert key1 != key2
+
+    def test_key_length_matches_constant(self):
+        """Generated cache keys should be exactly CACHE_KEY_LENGTH chars."""
+        from constants import CACHE_KEY_LENGTH
+        key = TTLCache._make_key("test", "value")
+        assert len(key) == CACHE_KEY_LENGTH
+
+    def test_overwrite_existing_key(self):
+        """Setting a key again should overwrite the previous value."""
+        cache = TTLCache(ttl_seconds=60)
+        cache.set("original", "k1")
+        cache.set("updated", "k1")
+        assert cache.get("k1") == "updated"

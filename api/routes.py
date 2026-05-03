@@ -11,7 +11,7 @@ import json
 import logging
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -68,7 +68,7 @@ class ChatRequest(BaseModel):
         ..., min_length=MIN_INPUT_LENGTH, max_length=MAX_MESSAGE_LENGTH,
         description="User question about elections",
     )
-    country: Optional[str] = Field(
+    country: str | None = Field(
         None, max_length=MAX_COUNTRY_LENGTH,
         description="Country context for localised answers",
     )
@@ -152,7 +152,7 @@ class ReadinessRequest(BaseModel):
     understand_ballot: bool = Field(
         ..., description="Whether they understand the ballot format"
     )
-    country: Optional[str] = Field(
+    country: str | None = Field(
         None, max_length=MAX_COUNTRY_LENGTH, description="Optional country context"
     )
 
@@ -318,7 +318,11 @@ async def chat_endpoint(data: ChatRequest) -> ChatResponse:
     """
     context = f"User's country of interest: {data.country}" if data.country else None
     logger.info("Chat request: %d chars", len(data.message))
-    reply = await chat(data.message, context)
+    try:
+        reply = await chat(data.message, context)
+    except (AIServiceError, BallotBoxError) as exc:
+        logger.warning("Chat fallback: %s", exc.message)
+        reply = "I'm having trouble processing your request. Please try again."
     return ChatResponse(reply=reply)
 
 

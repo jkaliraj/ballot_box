@@ -40,9 +40,10 @@ def report_error(exc: Exception, context: dict[str, Any] | None = None) -> None:
         client = error_reporting.Client()
         client.report_exception()
         logger.error(
-            "Error reported to Cloud Error Reporting: %s — %s",
+            "Error reported to Cloud Error Reporting: %s — %s | details=%s",
             type(exc).__name__,
             str(exc),
+            error_details,
         )
     except ImportError:
         logger.error(
